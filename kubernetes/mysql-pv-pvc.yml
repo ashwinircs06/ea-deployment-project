@@ -1,0 +1,27 @@
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: mysql-pv
+spec:
+  capacity:
+    storage: 10Gi
+  hostPath:
+    path: /mnt/data/mysql
+  accessModes:
+    - ReadWriteOnce  # Changed from ReadWriteMany to ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: mysql
+  volumeMode: Filesystem
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  volumeMode: Filesystem
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: mysql

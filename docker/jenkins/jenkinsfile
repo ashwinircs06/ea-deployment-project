@@ -1,0 +1,105 @@
+pipeline {
+    agent any
+
+    parameters {
+        choice(name: 'DEPLOYMENT_SERVER', choices: ['blue', 'green'], description: 'Select deployment server')
+        booleanParam(name: 'APP_DEPLOYMENT_K8S_CLUSTER', defaultValue: false, description: 'Deploy frontend & backend in kubernetes cluster')
+        booleanParam(name: 'CREATE_INFRASTRUCTURE_WITH_TERRAFORM', defaultValue: false, description: 'Create AWS infrastructure with Terraform')
+        booleanParam(name: 'RUN_SYSTEM_MONITORING', defaultValue: false, description: 'Run system monitoring with Prometheus & Grafana')
+        booleanParam(name: 'RUN_LOG_MONITORING', defaultValue: false, description: 'Run log monitoring with ELK Stack')
+        booleanParam(name: 'RUN_MYSQL_DB', defaultValue: false, description: 'Run MySQL DB if you fetch any database issue')
+    }
+
+    stages {
+        stage('Deployment') {
+            steps {
+                script {
+                    if (params.APP_DEPLOYMENT_K8S_CLUSTER) {
+                        deployAppK8sCluster()
+                    }
+                    if (params.CREATE_INFRASTRUCTURE_WITH_TERRAFORM) {
+                        createInfrastructureWithTerraform()
+                    }
+                    if (params.RUN_SYSTEM_MONITORING) {
+                        runSystemMonitoring()
+                    }
+                    if (params.RUN_LOG_MONITORING) {
+                        runLogMonitoring()
+                    }
+                    if (params.RUN_MYSQL_DB) {
+                        runMysqlDB()
+                    }
+                    if (params.DEPLOYMENT_SERVER == 'blue') {
+                        deployToBlueServer()
+                    } else if (params.DEPLOYMENT_SERVER == 'green') {
+                        deployToGreenServer()
+                    } else {
+                        error("Invalid deployment server selected")
+                    }
+                }
+            }
+        }
+    }
+}
+
+def deployAppK8sCluster() {
+    
+    sshagent(credentials: ['cred']) {
+        sh '''
+            ssh -o StrictHostKeyChecking=no ubuntu@13.200.174.162 "sudo su -c 'cd /home/ubuntu/ea-deployment-project/kubernetes && kubectl apply -f backend-blue.yml && kubectl apply -f backend-green.yml && kubectl apply -f frontend-blue.yml && kubectl apply -f frontend-green.yml && kubectl apply -f mysql-pv-pvc.yml && kubectl apply -f mysql.yml'"
+        '''
+    }
+}
+
+def createInfrastructureWithTerraform() {
+    
+    sshagent(credentials: ['cred']) {
+        sh '''
+            ssh -o StrictHostKeyChecking=no ubuntu@13.200.174.162 "cd /home/ubuntu/ea-deployment-project/terraform && terraform init && terraform apply -auto-approve"
+        '''
+    }
+}
+
+def runSystemMonitoring() {
+    
+    sshagent(credentials: ['cred']) {
+        sh '''
+            ssh -o StrictHostKeyChecking=no ubuntu@13.200.174.162 "cd /home/ubuntu/ea-deployment-project/docker && docker-compose up -d"
+        '''
+    }
+}
+
+def runLogMonitoring() {
+    
+    sshagent(credentials: ['cred']) {
+        sh '''
+            ssh -o StrictHostKeyChecking=no ubuntu@13.200.174.162 "sudo su -c 'cd /home/ubuntu/ea-deployment-project/kubernetes && kubectl apply -f elesticsearch.yaml && kubectl apply -f filesbeat.yaml && kubectl apply -f logstash.yaml && kubectl apply -f filebeats-configmap.yaml && kubectl apply -f kibina.yaml && kubectl apply -f cluster-role-binding.yaml'"
+        '''
+    }
+}
+
+def runMysqlDB() {
+    
+    sshagent(credentials: ['cred']) {
+        sh '''
+            ssh -o StrictHostKeyChecking=no ubuntu@13.200.174.162 "cd /home/ubuntu/ea-deployment-project/kubernetes && bash mysql.sh"
+        '''
+    }
+}
+
+def deployToBlueServer() {
+    sshagent(credentials: ['cred']) {
+        sh '''
+            ssh -o StrictHostKeyChecking=no ubuntu@13.200.174.162 "cd /home/ubuntu/ea-deployment-project/kubernetes && bash script-blue.sh"
+        '''
+    }
+}
+
+def deployToGreenServer() {
+    sshagent(credentials: ['cred']) {
+        sh '''
+            ssh -o StrictHostKeyChecking=no ubuntu@13.200.174.162 "cd /home/ubuntu/ea-deployment-project/kubernetes && bash script-green.sh"
+        '''
+    }
+}
+

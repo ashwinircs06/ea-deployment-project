@@ -1,0 +1,19 @@
+scrape_configs:
+  - job_name: 'blue-server'
+    scrape_interval: 5s
+    static_configs:
+      - targets: ['nodeexporter:9100']
+        labels:
+          alias: 'Blue Server'
+
+  - job_name: 'green-server'
+    scrape_interval: 5s
+    static_configs:
+      - targets: ['35.154.9.239:9100']
+        labels:
+          alias: 'Green Server'
+
+  - job_name: 'prometheus'
+    scrape_interval: 5s
+    static_configs:
+      - targets: ['localhost:9090']
