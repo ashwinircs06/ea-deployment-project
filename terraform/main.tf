@@ -72,3 +72,4 @@ resource "aws_instance" "green_new_instance" {
   }
 }
 
+# Running this for test purpose
