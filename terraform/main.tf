@@ -20,19 +20,19 @@ data "aws_vpc" "default" {
 }
 
 # Define the Subnet
-resource "aws_subnet" "ea_deployment_subnet" {
+resource "aws_subnet" "dbs_deployment_subnet" {
   vpc_id            = data.aws_vpc.default.id
   cidr_block        = "172.31.227.0/24"
   availability_zone = "ap-south-1b"
   map_public_ip_on_launch = true
   tags = {
-    Name = "ea-deployment-public-subnet"
+    Name = "dbs-deployment-public-subnet"
   }
 }
 
 # Define a security group
 resource "aws_security_group" "ea_deployment_sg" {
-  name = "ea-deployment-security-group"
+  name = "dbs-deployment-security-group"
   vpc_id = data.aws_vpc.default.id
 
   # Allow SSH access from anywhere
@@ -53,9 +53,9 @@ resource "aws_security_group" "ea_deployment_sg" {
 
 # Create EC2 instance
 resource "aws_instance" "blue_new_instance" {
-  ami             = "ami-007020fd9c84e18c7"
+  ami             = "ami-076c6dbba59aa92e6"
   instance_type   = "c5a.xlarge"
-  security_groups = [aws_security_group.ea_deployment_sg.name]
+  security_groups = [aws_security_group.dbs_deployment_sg.name]
   key_name        = "key"
   tags = {
     Name = "blue-new"
@@ -63,13 +63,12 @@ resource "aws_instance" "blue_new_instance" {
 }
 
 resource "aws_instance" "green_new_instance" {
-  ami             = "ami-007020fd9c84e18c7"
+  ami             = "ami-076c6dbba59aa92e6"
   instance_type   = "c5a.xlarge"
-  security_groups = [aws_security_group.ea_deployment_sg.name]
+  security_groups = [aws_security_group.dbs_deployment_sg.name]
   key_name        = "key"
   tags = {
     Name = "green-new"
   }
 }
 
-# Running this for test purpose
